@@ -20,6 +20,34 @@ purposes. See the [cvtk/notebooks](http://github.com/vsbuffalo/cvtk) for
 examples from our 2020 PNAS paper on how to do these analyses; this is the most
 detailed documentation/tutorial currently.
 
+## Installation
+
+Currently this Python package is not hosted anywhere. So you will need to
+install it locally by cloning this repository,
+
+```
+$ git clone https://github.com/vsbuffalo/cvtkpy.git
+```
+
+Then installing,
+
+```
+$ python setup.py install  # must be Python 3
+```
+
+which should also install any dependencies you don't have.
+
+Then, try:
+
+```
+$ python
+Python 3.7.2 | packaged by conda-forge | (default, Mar 19 2019, 20:46:22)
+[Clang 4.0.1 (tags/RELEASE_401/final)] :: Anaconda, Inc. on darwin
+Type "help", "copyright", "credits" or "license" for more information.
+>>> import cvtk 
+>>> # it works!
+```
+
 ## Citing 
 
 Please cite both Buffalo and Coop (*Genetics*, 2019) which is the original
@@ -51,8 +79,4 @@ the correct paper to cite for these newer methods. Here are the BibTeX entries:
 }
 ```
 
-## Required Software
-
-    conda env create -f environment.yml
-    jupyter labextension install @jupyter-widgets/jupyterlab-manager
 
