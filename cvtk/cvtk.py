@@ -129,24 +129,25 @@ class TemporalFreqs(object):
         return convergence_corr_by_group(covs, self.R, self.T)
 
 
-    def calc_cov_by_group(self, groups, keep_seqids=None, bias_correction=True,
-                           standardize=True, use_masked=False, return_ratio_parts=False,
-                           progress_bar=False):
+    def calc_cov_by_group(self, groups, group_seqids=None, keep_seqids=None,
+                          bias_correction=True, standardize=True,
+                          use_masked=False, return_ratio_parts=False,
+                          progress_bar=False):
         """
         Calculate covariances, grouping loci by the indices in groups.
         """
         freqs, depths = self.freqs, self.depths
         if keep_seqids is not None:
-            assert(isinstance(keep_seqids, (tuple, list)))
-            idx = np.array([i for i, seqid in enumerate(self.gintervals.seqid)
-                            if seqid in keep_seqids])
-            freqs, depths = freqs[..., idx], depths[..., idx]
+            assert(group_seqids is not None)
+            # thin out the groups that don't have the right seqid
+            groups = [g for seqid, g in zip(group_seqids, groups) if
+                      seqid in keep_seqids]
         res = cov_by_group(groups, freqs,
-                            depths=depths, diploids=self.diploids,
-                            standardize=standardize,
-                            use_masked=use_masked, share_first=self.share_first,
-                            return_ratio_parts=return_ratio_parts,
-                            bias_correction=bias_correction, progress_bar=progress_bar)
+                           depths=depths, diploids=self.diploids,
+                           standardize=standardize,
+                           use_masked=use_masked, share_first=self.share_first,
+                           return_ratio_parts=return_ratio_parts,
+                           bias_correction=bias_correction, progress_bar=progress_bar)
         if return_ratio_parts:
             covs, het_denoms = res
             return covs, het_denoms
@@ -231,7 +232,8 @@ class TiledTemporalFreqs(TemporalFreqs):
 
     def calc_cov_by_tile(self, *args, **kwargs):
         indices = self.tile_indices
-        return super().calc_cov_by_group(indices, *args, **kwargs)
+        return super().calc_cov_by_group(indices, group_seqids=self.tiles.seqid,
+                                         *args, **kwargs)
 
     def calc_var_by_tile(self, *args, **kwargs):
         indices = self.tile_indices
@@ -299,6 +301,7 @@ class TiledTemporalFreqs(TemporalFreqs):
 
     def bootstrap_cov(self, B, alpha=0.05, keep_seqids=None, progress_bar=False,
                       average_replicates=True, return_straps=False, ci_method='pivot',
+                      use_bs_estimate=False,
                       **kwargs):
         """
         Bootstrap whole covaraince matrix.
@@ -315,18 +318,20 @@ class TiledTemporalFreqs(TemporalFreqs):
         cov = self.calc_cov(keep_seqids=keep_seqids, **kwargs)
         if average_replicates:
             cov = np.nanmean(stack_temporal_covariances(cov, self.R, self.T), axis=2)
+        # the filter of seqids is done at this step
         covs, het_denoms = self.calc_cov_by_tile(return_ratio_parts=True,
                                                  keep_seqids=keep_seqids, **kwargs)
         covs, het_denoms = np.stack(covs), np.stack(het_denoms)
+        if use_bs_estimate:
+            cov = None
         return block_bootstrap_ratio_averages(covs, het_denoms,
                                               block_indices=self.tile_indices,
-                                              block_seqids=self.tile_df['seqid'].values,
                                               estimator=cov_estimator,
+                                              ci_method=ci_method,
                                               statistic=cov,
                                               B=B, alpha=alpha,
                                               progress_bar=progress_bar,
-                                              keep_seqids=keep_seqids, return_straps=return_straps,
-                                              ci_method=ci_method,
+                                              return_straps=return_straps,
                                               # kwargs passed directly to cov_estimator
                                               average_replicates=average_replicates,
                                               R=self.R, T=self.T)

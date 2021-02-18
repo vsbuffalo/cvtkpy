@@ -1,5 +1,6 @@
 from itertools import chain
 import numpy as np
+from scipy.stats import norm
 from tqdm import tnrange
 from cvtk.utils import view_along_axis
 from cvtk.cov import stack_temporal_covariances, temporal_replicate_cov
@@ -20,6 +21,11 @@ def bootstrap_ci(estimate, straps, alpha=0.05, method='pivot', axis=0, stack=Tru
         CIs = qlower, estimate, qupper
     elif method == 'pivot':
         CIs = 2*estimate - qupper, estimate, 2*estimate - qlower
+    elif method == 'standard':
+        # the standard method, see Efron 2016, p. 186
+        sd = np.std(straps, axis=axis)
+        z = norm.ppf(1-alpha/2)
+        CIs = estimate - z*sd, estimate, estimate + z*sd
     else:
         raise ValueError("method must be either 'pivot' or 'percentile'")
     if stack:
@@ -41,9 +47,9 @@ def weighted_mean(array, weights, axis=0):
 
 
 def block_bootstrap_ratio_averages(blocks_numerator, blocks_denominator,
-                                   block_indices, block_seqids, B, estimator=np.divide,
+                                   block_indices, B, estimator=np.divide,
                                    statistic=None,
-                                   alpha=0.05, keep_seqids=None, return_straps=False,
+                                   alpha=0.05, return_straps=False,
                                    ci_method='pivot', progress_bar=False, **kwargs):
     """
     This block bootstrap is used often for quantities we need to calculate that are
@@ -64,17 +70,11 @@ def block_bootstrap_ratio_averages(blocks_numerator, blocks_denominator,
     else:
         B_range = range(int(B))
 
-    # We create the vector of indices to sample with replacement from, excluding
-    # any blocks with seqids not in keep_seqids.
-    if keep_seqids is not None:
-        blocks = np.array([i for i, seqid in enumerate(block_seqids)
-                           if seqid in keep_seqids], dtype='uint32')
-    else:
-        blocks = np.array([i for i, seqid in enumerate(block_seqids)], dtype='uint32')
+    assert(len(blocks_numerator) == len(blocks_denominator))
+    blocks = np.arange(len(blocks_numerator), dtype='uint32')
 
     # Calculate the weights
     weights = np.array([len(x) for x in block_indices])
-    weights = weights/weights.sum()
 
     # number of samples in resample
     nblocks = len(blocks)
@@ -90,7 +90,7 @@ def block_bootstrap_ratio_averages(blocks_numerator, blocks_denominator,
     if That is None:
         That = np.mean(straps, axis=0)
     if return_straps:
-        return straps
+        return straps, weights
     return bootstrap_ci(That, straps, alpha=alpha, method=ci_method)
 
 
@@ -112,6 +112,7 @@ def block_bootstrap(freqs,
                     ci_method='pivot', progress_bar=False, **kwargs):
     """
     """
+    assert(False) # deprciated
     if progress_bar:
         B_range = tnrange(int(B), desc="bootstraps")
     else:
@@ -139,7 +140,6 @@ def block_bootstrap(freqs,
         stat = estimator(freqs[..., indices], **kwargs)
         straps.append(stat)
     straps = np.stack(straps)
-    That = np.mean(straps, axis=0)
     if return_straps:
         return straps
     return bootstrap_ci(That, straps, alpha=alpha, method=ci_method)

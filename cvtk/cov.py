@@ -221,6 +221,7 @@ def cov_by_group(groups, freqs, depths=None, diploids=None, standardize=True,
                                      share_first=share_first,
                                      return_ratio_parts=return_ratio_parts,
                                      deltas=group_deltas)
+        # __import__('pdb').set_trace()
         if return_ratio_parts:
             cov, het_denom = res
             covs.append(cov)
@@ -301,7 +302,7 @@ def temporal_replicate_cov(freqs, depths=None, diploids=None,
         assert(depths.shape == (R, T+1, L))
     if diploids is not None:
         assert(diploids.shape == (R, T+1, 1))
-
+    # __import__('pdb').set_trace()
     # calculate variance-covariance matrix
     if use_masked:
         deltas_masked = np.ma.masked_invalid(deltas)
