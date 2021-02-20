@@ -87,11 +87,16 @@ def replicate_block_matrix_indices(R, T):
     return (row_bm, col_bm)
 
 def stack_replicate_covariances(covmat, R, T, stack=True, return_tuple=False,
-                                upper_only=True):
+                                upper_only=True, return_labels=False,
+                                samples=None):
     """
     Upper only now.
     """
     layers = []
+    labels = []
+    if return_labels:
+        assert(samples is not None)
+        labmat = cov_labels(R, T, samples)
     rows, cols = replicate_block_matrix_indices(R, T)
     for i in np.arange(R):
         for j in np.arange(R):
@@ -102,6 +107,8 @@ def stack_replicate_covariances(covmat, R, T, stack=True, return_tuple=False,
                 continue
             this_block_matrix = np.logical_and(rows == i, cols == j)
             block = covmat[this_block_matrix].reshape(T, T)
+            if return_labels:
+                label_block = labmat[this_block_matrix].reshape(T, T)
             if stack:
                 layers.append(block)
             else:
@@ -110,22 +117,40 @@ def stack_replicate_covariances(covmat, R, T, stack=True, return_tuple=False,
                     layers.append((i, j, block))
                 else:
                     layers.append(block)
+            if return_labels:
+                labels.append(label_block)
     if stack:
-        return np.stack(layers).T
-    return layers
+        if not return_labels:
+            return np.stack(layers)
+        return np.stack(layers), np.stack(labels)
+    if not return_labels:
+        return layers
+    else:
+        return layers, labels
 
-def stack_temporal_covariances(covmat, R, T, stack=True):
+
+def stack_temporal_covariances(covmat, R, T, stack=True, return_labels=False,
+                               samples=None):
     """
     Stack temporal sub-matrices of the temporal covariance matrix.
     """
-    layers = []
+    layers, labels = [], []
     rows, cols = replicate_block_matrix_indices(R, T)
+    if return_labels:
+        assert(samples is not None)
+        labmat = cov_labels(R, T, samples, lab_var=True)
     for i in np.arange(R):
         this_block_matrix = np.logical_and(rows == i, cols == i)
         block = covmat[this_block_matrix].reshape(T, T)
         layers.append(block)
+        if return_labels:
+            label_block = labmat[this_block_matrix].reshape(T, T)
+            labels.append(label_block)
     if stack:
-        return np.stack(layers).T
+        if not return_labels:
+            return np.stack(layers)
+        else:
+            return np.stack(layers), np.stack(labels)
     return layers
 
 
@@ -323,8 +348,6 @@ def temporal_replicate_cov(freqs, depths=None, diploids=None,
             with np.errstate(divide=warn_type, invalid=warn_type):
                 cov = cov / het_denom
         return cov
-
-
     # correction arrays — these are built up depending on input
     ave_bias = np.zeros((R, (T+1)))
     var_correction = np.zeros(RxT)
@@ -357,6 +380,7 @@ def temporal_replicate_cov(freqs, depths=None, diploids=None,
             np.diag(covar_correction, k=1) +
             np.diag(covar_correction, k=-1))
 
+    # het_denom[het_denom == 0.] = np.nan
     if standardize:
         if return_ratio_parts:
             return cov, het_denom
@@ -365,17 +389,20 @@ def temporal_replicate_cov(freqs, depths=None, diploids=None,
     return cov
 
 
-def total_variance(freqs, depths=None, diploids=None, t=None, standardize=True,
-                   bias_correction=True, warn=False):
+def total_variance(freqs, depths=None, diploids=None, t=None, i=None,
+                   standardize=True, bias_correction=True, warn=False):
     """
     Calculate the Var(p_t - p_0) across all replicates.
     """
     R, ntimepoints, L = freqs.shape
     if t is None:
         t = ntimepoints-1
+    if i is None:
+        i = 0
     assert(t < ntimepoints)
-    pt_p0 = (freqs[:, t, :] - freqs[:, 0, :])
+    pt_p0 = (freqs[:, t, :] - freqs[:, i, :])
     var_pt_p0 = np.nanvar(pt_p0, axis=1)
+    print(var_pt_p0)
 
     diploid_correction = 0.
     depth_correction = 0.
@@ -384,19 +411,19 @@ def total_variance(freqs, depths=None, diploids=None, t=None, standardize=True,
     warn_type = 'ignore' if not warn else 'warn'
     with np.errstate(divide=warn_type, invalid=warn_type):
         if depths is not None:
-            depth_correction = 1 / depths[:, (0, t), :]
+            depth_correction = 1 / depths[:, (i, t), :]
         if diploids is not None:
-            diploid_correction = 1 / (2 * diploids[:, (0, t), :])
+            diploid_correction = 1 / (2 * diploids[:, (i, t), :])
             if depths is not None:
-                b = 1 / (2 * depths[:, (0, t), :] * diploids[:, (0, t), :])
+                b = 1 / (2 * depths[:, (i, t), :] * diploids[:, (i, t), :])
                 diploid_correction = diploid_correction + b
     # the bias vector for all timepoints
-    hets = calc_hets(freqs, depths=depths, diploids=diploids)[:, (0, t), :]
+    hets = calc_hets(freqs, depths=depths, diploids=diploids)[:, (i, t), :]
 
     if not bias_correction:
         if standardize:
             # note: factor of two issue was found here in revisions and fixed
-            return var_pt_p0 / (0.5 * np.nanmean(hets[:, 0, :], axis=1))
+            return var_pt_p0 / (0.5 * np.nanmean(hets[:, i, :], axis=1))
         return var_pt_p0
 
     ave_bias += np.nanmean(0.5 * hets * (diploid_correction + depth_correction), axis=2)
@@ -409,6 +436,39 @@ def total_variance(freqs, depths=None, diploids=None, t=None, standardize=True,
         warnings.warn(msg)
     if standardize:
         # note: factor of two issue was found here in revisions and fixed
-        out = out / (0.5 * np.nanmean(hets[:, 0, :], axis=1))
+        out = out / (0.5 * np.nanmean(hets[:, i, :], axis=1))
     return out
+
+def label_labeller(deltas, pops, i, j, p, q, lab_var=False):
+    # i, j are temporal indices, p, q are replicate
+    full = "cov(" + pops[p] + ": " + deltas[i] + ", "  + pops[q] + ": " + deltas[j] + ")"
+    var = "var(" + pops[p] + ": " + deltas[i] + ")"
+    if lab_var and i == j:
+        return var
+    if p != q:
+        full = 'rep_' + full
+    return full
+
+
+def cov_labels(R, T, samples, lab_var=False):
+    """
+    Return the labels of the temporal replicate covariance matrix.
+    """
+    rrows, rcols = replicate_block_matrix_indices(R, T)
+    trows, tcols = temporal_block_matrix_indices(R, T)
+    samples = samples
+    pops = [samples[r][0] for r in range(0, R*(T+1), T+1)]
+    times = [t for _, t in samples[0:(T+1)]]
+    assert(times == sorted(set(t for _, t in samples)))
+    deltas = [str(times[i+1]) + "-" + str(times[i]) for i in range(T)]
+    delmat = [deltas[i] + ", " + deltas[j] for i, j in
+                zip(trows.flatten(), tcols.flatten())]
+    sampmat = [(pops[i], pops[j]) for i, j in
+                zip(rrows.flatten(), rcols.flatten())]
+    bothmat = [label_labeller(deltas, pops, i, j, p, q, lab_var)
+               for i, j, p, q in zip(trows.flatten(), tcols.flatten(),
+                    rrows.flatten(), rcols.flatten())]
+    return np.array(bothmat).reshape(R*T, R*T)
+
+
 

@@ -30,7 +30,7 @@ def correction_diagnostic_plot(diag, figsize=None, color=True):
     
     ax[1, 0].plot(xpreds[False], ypreds[False][1], 'r-')
     ax[1, 0].annotate('before correction', xy=(labelx, labely), xycoords='axes fraction')
-    ax[1, 0].axhline(y=0, color='99', zorder=1, linestyle='--')
+    ax[1, 0].axhline(y=0, zorder=1, linestyle='--')
     ax[1, 0].set_ylabel('covariance')
     if color:
         ax[1, 0].scatter(before['depth'], before['offdiag'], c=integerize(before['seqid']), 
@@ -42,7 +42,7 @@ def correction_diagnostic_plot(diag, figsize=None, color=True):
         ax[1, 1].scatter(before['depth'], after['offdiag'], zorder=2, s=5)
     ax[1, 1].plot(xpreds[True], ypreds[True][1], 'r-')
     ax[1, 1].annotate('after correction', xy=(labelx, labely), xycoords='axes fraction')
-    ax[1, 1].axhline(y=0, color='99', zorder=1, linestyle='--')
+    ax[1, 1].axhline(y=0, zorder=1, linestyle='--')
     ax[1, 0].set_xlabel('average depth per window')
     ax[1, 1].set_xlabel('average depth per window')
     plt.tight_layout()

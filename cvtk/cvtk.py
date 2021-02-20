@@ -13,7 +13,7 @@ from cvtk.cov import stack_replicate_covs_by_group, stack_temporal_covariances
 from cvtk.cov import temporal_replicate_cov, cov_by_group, calc_hets
 from cvtk.cov import total_variance, var_by_group
 from cvtk.cov import stack_temporal_covs_by_group, stack_replicate_covs_by_group
-from cvtk.cov import replicate_block_matrix_indices
+from cvtk.cov import replicate_block_matrix_indices, temporal_block_matrix_indices
 from cvtk.bootstrap import block_bootstrap_ratio_averages, cov_estimator
 from cvtk.bootstrap import block_bootstrap
 from cvtk.G import calc_G, G_estimator, convergence_corr_by_group
@@ -57,15 +57,17 @@ class TemporalFreqs(object):
 
         self.diploids = None
         if diploids is not None:
-            if isinstance(diploids, np.ndarray) and len(diploids) > 1:
-                #assert(diploids.ndim == 1)
-                try:
-                    diploids = diploids[sorted_i, ...]
-                except:
-                    msg = ("diploids must be single integer or array of "
+            if isinstance(diploids, int):
+                diploids = np.repeat(diploids, len(samples))
+            if len(diploids) == len(samples):
+                if isinstance(diploids, list):
+                    diploids = np.array(diploids)
+                diploids = diploids[sorted_i, ...]
+            else:
+                msg = ("diploids must be single integer or array of "
                            f"size nreplicates*ntimepoints ({nreplicates*ntimepoints}), "
                            f"supplied size: {len(diploids)}")
-                    raise ValueError(msg)
+                raise ValueError(msg)
             self.diploids = validate_diploids(diploids, nreplicates, ntimepoints)
             #assert(self.diploids.shape == (nreplicates, ntimepoints, 1))
 
@@ -112,6 +114,7 @@ class TemporalFreqs(object):
                                       product_only=product_only,
                                       standardize=standardize, use_masked=use_masked)
 
+
     def convergence_corr(self, subset=None, bias_correction=True, **kwargs):
         gw_covs = self.calc_cov(standardize=False,
                                 bias_correction=bias_correction, **kwargs)
@@ -154,9 +157,10 @@ class TemporalFreqs(object):
         else:
             return res
 
-    def calc_var(self, t=None, standardize=True, bias_correction=True):
+    def calc_var(self, t=None, i=None, standardize=True, bias_correction=True):
         return total_variance(self.freqs, self.depths, self.diploids, t=t,
-                              standardize=standardize, bias_correction=bias_correction)
+                              i=i, standardize=standardize,
+                              bias_correction=bias_correction)
 
     def calc_var_by_group(self, groups, t=None, standardize=True, bias_correction=True):
         return var_by_group(groups, freqs=self.freqs, depths=self.depths, diploids=self.diploids,
@@ -246,7 +250,7 @@ class TiledTemporalFreqs(TemporalFreqs):
         for indices in self.tile_indices:
             n = view_along_axis(ave_depth, indices, 0)
             if average:
-                n = n.mean()
+                n = np.nanmean(n)
             depth.append(n)
         return depth
 
@@ -260,7 +264,7 @@ class TiledTemporalFreqs(TemporalFreqs):
             #het = view_along_axis(hets, indices, 0)
             het = hets[..., indices]
             if average:
-                het = het.mean()
+                het = np.nanmean(het)
             tile_hets.append(het)
         return tile_hets
 

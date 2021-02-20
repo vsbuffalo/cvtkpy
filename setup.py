@@ -25,6 +25,8 @@ setuptools.setup(
         'tqdm',
         'matplotlib',
         'statsmodels',
+        'scikit-allel',
+        'sklearn'
     ],
     python_requires='>=3.6',
 )
