@@ -106,13 +106,12 @@ def cov_estimator(cov, het_denom, R, T, average_replicates=False, warn=False):
 
 flatten = lambda l: [item for sublist in l for item in sublist]
 
-def block_bootstrap(freqs,
+def block_bootstrap(freqs, depths, diploids,
                     block_indices, block_seqids, B, estimator,
                     alpha=0.05, keep_seqids=None, return_straps=False,
                     ci_method='pivot', progress_bar=False, **kwargs):
     """
     """
-    assert(False) # deprciated
     if progress_bar:
         B_range = tnrange(int(B), desc="bootstraps")
     else:
@@ -126,10 +125,6 @@ def block_bootstrap(freqs,
     else:
         blocks = np.array([i for i, seqid in enumerate(block_seqids)], dtype='uint32')
 
-    # Calculate the weights
-    weights = np.array([len(x) for x in block_indices])
-    weights = weights/weights.sum()
-
     # number of samples in resample
     nblocks = len(blocks)
     straps = list()
@@ -137,11 +132,10 @@ def block_bootstrap(freqs,
     for b in B_range:
         bidx = np.random.choice(blocks, size=nblocks, replace=True)
         indices = np.array(flatten([block_indices[b] for b in bidx]))
-        stat = estimator(freqs[..., indices], **kwargs)
+        stat = estimator(freqs[..., indices], depths[..., indices],
+                         diploids, **kwargs)
         straps.append(stat)
     straps = np.stack(straps)
-    if return_straps:
-        return straps
-    return bootstrap_ci(That, straps, alpha=alpha, method=ci_method)
+    return straps
 
 
