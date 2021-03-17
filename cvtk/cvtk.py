@@ -162,7 +162,14 @@ class TemporalFreqs(object):
                               i=i, standardize=standardize,
                               bias_correction=bias_correction)
 
-    def calc_var_by_group(self, groups, t=None, standardize=True, bias_correction=True):
+    def calc_var_by_group(self, groups,
+                          group_seqids=None, keep_seqids=None,
+                          t=None, standardize=True, bias_correction=True):
+        if keep_seqids is not None:
+            assert(group_seqids is not None)
+            # thin out the groups that don't have the right seqid
+            groups = [g for seqid, g in zip(group_seqids, groups) if
+                      seqid in keep_seqids]
         return var_by_group(groups, freqs=self.freqs, depths=self.depths, diploids=self.diploids,
                             t=t, standardize=standardize, bias_correction=bias_correction)
 
@@ -369,7 +376,9 @@ class TiledTemporalFreqs(TemporalFreqs):
                                           bias_correction=bias_correction)
 
         if not ratio_of_averages:
-            return block_bootstrap(self.freqs, B=B, block_indices=self.tile_indices,
+            return block_bootstrap(self.freqs,
+                                   self.depths, self.diploids,
+                                   B=B, block_indices=self.tile_indices,
                                    block_seqids=self.tile_df['seqid'].values,
                                    alpha=alpha, keep_seqids=keep_seqids,
                                    progress_bar=progress_bar,
@@ -394,12 +403,10 @@ class TiledTemporalFreqs(TemporalFreqs):
                         convergence_corr_denominator(temporal_covs))
         return block_bootstrap_ratio_averages(nums, denoms,
                      block_indices=self.tile_indices,
-                     block_seqids=self.tile_df['seqid'].values,
                      estimator=np.divide,
                      B=B,
                      statistic=conv_corr,
                      alpha=alpha,
-                     keep_seqids=keep_seqids,
                      return_straps=return_straps,
                      ci_method=ci_method, progress_bar=progress_bar)
 
@@ -415,10 +422,14 @@ class TiledTemporalFreqs(TemporalFreqs):
                         use_masked=use_masked, abs=abs)
         vars = list()
         for t in np.arange(1, self.T+1):
-            vars.append(np.stack(self.calc_var_by_tile(t=t, standardize=False)))
+            vars.append(np.stack(self.calc_var_by_tile(t=t,
+                                                       group_seqids=self.tiles.seqid,
+                                                       keep_seqids=keep_seqids,
+                                                       standardize=False)))
         total_vars = np.stack(vars, axis=1)
         tile_covs = self.calc_cov_by_tile(standardize=False,
                                           use_masked=use_masked,
+                                          group_seqids=self.tiles.seqid,
                                           keep_seqids=keep_seqids)
         covs = stack_temporal_covs_by_group(tile_covs, self.R, self.T)
         return block_bootstrap_ratio_averages(covs, total_vars,

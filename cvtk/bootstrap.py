@@ -108,6 +108,7 @@ flatten = lambda l: [item for sublist in l for item in sublist]
 
 def block_bootstrap(freqs, depths, diploids,
                     block_indices, block_seqids, B, estimator,
+                    statistic=None,
                     alpha=0.05, keep_seqids=None, return_straps=False,
                     ci_method='pivot', progress_bar=False, **kwargs):
     """
@@ -136,6 +137,13 @@ def block_bootstrap(freqs, depths, diploids,
                          diploids, **kwargs)
         straps.append(stat)
     straps = np.stack(straps)
-    return straps
+    if return_straps:
+        return straps
+    That= statistic
+    if That is None:
+        That = np.mean(straps, axis=0)
+    return bootstrap_ci(That, straps, alpha=alpha, method=ci_method)
+
+
 
 

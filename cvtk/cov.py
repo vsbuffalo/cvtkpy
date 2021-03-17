@@ -121,7 +121,7 @@ def stack_replicate_covariances(covmat, R, T, stack=True, return_tuple=False,
                 labels.append(label_block)
     if stack:
         if not return_labels:
-            return np.stack(layers)
+            return np.stack(layers).T
         return np.stack(layers), np.stack(labels)
     if not return_labels:
         return layers
@@ -148,7 +148,7 @@ def stack_temporal_covariances(covmat, R, T, stack=True, return_labels=False,
             labels.append(label_block)
     if stack:
         if not return_labels:
-            return np.stack(layers)
+            return np.stack(layers).T
         else:
             return np.stack(layers), np.stack(labels)
     return layers
