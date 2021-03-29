@@ -27,6 +27,8 @@ def calc_diagnostics(covs, mean_hets, seqids, tile_depths,
     # but we return the *full* dataframe, which we make a
     # copy of here.
     full_df = df
+    with pd.option_context('mode.use_inf_as_null', True):
+        df = df.dropna()
     if exclude_seqids is not None:
         df = df[~df.seqid.isin(exclude_seqids)]
     diag_fit = smf.ols("diag ~ depth", df).fit()

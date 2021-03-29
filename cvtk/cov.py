@@ -91,6 +91,12 @@ def stack_replicate_covariances(covmat, R, T, stack=True, return_tuple=False,
                                 samples=None):
     """
     Upper only now.
+
+    If stack=True, the last dimension is the number of replicates, and the
+    first two dimensions are T, and T (for the covariance matrix).
+
+    For easier printing, you probably want to transpose the results of this
+    function when stack=True.
     """
     layers = []
     labels = []
@@ -122,7 +128,7 @@ def stack_replicate_covariances(covmat, R, T, stack=True, return_tuple=False,
     if stack:
         if not return_labels:
             return np.stack(layers).T
-        return np.stack(layers), np.stack(labels)
+        return np.stack(layers).T, np.stack(labels).T
     if not return_labels:
         return layers
     else:
@@ -150,7 +156,7 @@ def stack_temporal_covariances(covmat, R, T, stack=True, return_labels=False,
         if not return_labels:
             return np.stack(layers).T
         else:
-            return np.stack(layers), np.stack(labels)
+            return np.stack(layers).T, np.stack(labels).T
     return layers
 
 

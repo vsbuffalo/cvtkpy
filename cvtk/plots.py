@@ -27,22 +27,22 @@ def correction_diagnostic_plot(diag, figsize=None, color=True):
     ax[0, 0].set_xlabel('average depth per window')
     ax[0, 1].set_xlabel('average depth per window')
     ax[0, 1].annotate('after correction', xy=(labelx, labely), xycoords='axes fraction')
-    
+
     ax[1, 0].plot(xpreds[False], ypreds[False][1], 'r-')
     ax[1, 0].annotate('before correction', xy=(labelx, labely), xycoords='axes fraction')
-    ax[1, 0].axhline(y=0, zorder=1, linestyle='--')
+    ax[1, 0].axhline(y=0, zorder=1, linestyle='--', color='0.6')
     ax[1, 0].set_ylabel('covariance')
     if color:
-        ax[1, 0].scatter(before['depth'], before['offdiag'], c=integerize(before['seqid']), 
+        ax[1, 0].scatter(before['depth'], before['offdiag'], c=integerize(before['seqid']),
                          zorder=2, s=5)
-        ax[1, 1].scatter(before['depth'], after['offdiag'], c=integerize(before['seqid']), 
+        ax[1, 1].scatter(before['depth'], after['offdiag'], c=integerize(before['seqid']),
                          zorder=2, s=5)
     else:
         ax[1, 0].scatter(before['depth'], before['offdiag'], zorder=2, s=5)
         ax[1, 1].scatter(before['depth'], after['offdiag'], zorder=2, s=5)
     ax[1, 1].plot(xpreds[True], ypreds[True][1], 'r-')
     ax[1, 1].annotate('after correction', xy=(labelx, labely), xycoords='axes fraction')
-    ax[1, 1].axhline(y=0, zorder=1, linestyle='--')
+    ax[1, 1].axhline(y=0, zorder=1, linestyle='--', color='0.6')
     ax[1, 0].set_xlabel('average depth per window')
     ax[1, 1].set_xlabel('average depth per window')
     plt.tight_layout()
@@ -89,7 +89,7 @@ def rep_plot_pca(df, x=1, y=2, s=300, figsize=None, dpi=None, label=True, cmap=N
     return plt
 
 
-def rep_plot_pca2(df, x=1, y=2, s=300, figsize=None, dpi=None, label=True, cmap=None, 
+def rep_plot_pca2(df, x=1, y=2, s=300, figsize=None, dpi=None, label=True, cmap=None,
                   fontsize=12):
     l1, l2 = f"pc{int(x)}", f"pc{int(y)}"
     pc1, pc2 = df[l1], df[l2]
@@ -104,8 +104,8 @@ def rep_plot_pca2(df, x=1, y=2, s=300, figsize=None, dpi=None, label=True, cmap=
     label_df = df[[l1, l2, 'rep', 'gen']]
     if label:
         for pc1, pc2, rep, gen in label_df.itertuples(index=False):
-            ax.text(pc1, pc2, s=f"{gen}", horizontalalignment='center', 
-                    verticalalignment='center', fontsize=fontsize, 
+            ax.text(pc1, pc2, s=f"{gen}", horizontalalignment='center',
+                    verticalalignment='center', fontsize=fontsize,
                     zorder=rep)
     ax.set_xlabel(l1.upper())
     ax.set_ylabel(l2.upper())
