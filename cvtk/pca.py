@@ -38,7 +38,7 @@ class FreqPCA(object):
             warn(f"removing {nremoved} loci ({perc}%) due to NaN/non-finite values")
         mat = mat[keep, :]
         self.denom = denom[keep]
-        self.centered = (mat.T - p_bar).T
+        self.centered = (mat.T - p_bar[keep]).T
         self.pca = PCA(n_components=n_components)
         self.X = (self.centered.T / self.denom).T
         self.X = self.centered.T
