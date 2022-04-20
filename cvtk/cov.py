@@ -422,7 +422,7 @@ def total_variance(freqs, depths=None, diploids=None, t=None, i=None,
             diploid_correction = 1 / (2 * diploids[:, (i, t), :])
             if depths is not None:
                 b = 1 / (2 * depths[:, (i, t), :] * diploids[:, (i, t), :])
-                diploid_correction = diploid_correction + b
+                diploid_correction = diploid_correction - b
     # the bias vector for all timepoints
     hets = calc_hets(freqs, depths=depths, diploids=diploids)[:, (i, t), :]
 
