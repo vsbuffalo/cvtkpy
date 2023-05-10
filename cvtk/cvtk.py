@@ -429,7 +429,7 @@ class TiledTemporalFreqs(TemporalFreqs):
         total_vars = np.stack(vars, axis=1)
         tile_covs = self.calc_cov_by_tile(standardize=False,
                                           use_masked=use_masked,
-                                          group_seqids=self.tiles.seqid,
+                                          #group_seqids=self.tiles.seqid,
                                           keep_seqids=keep_seqids)
         covs = stack_temporal_covs_by_group(tile_covs, self.R, self.T)
         return block_bootstrap_ratio_averages(covs, total_vars,

@@ -408,7 +408,6 @@ def total_variance(freqs, depths=None, diploids=None, t=None, i=None,
     assert(t < ntimepoints)
     pt_p0 = (freqs[:, t, :] - freqs[:, i, :])
     var_pt_p0 = np.nanvar(pt_p0, axis=1)
-    print(var_pt_p0)
 
     diploid_correction = 0.
     depth_correction = 0.
