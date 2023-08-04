@@ -21,7 +21,7 @@ setuptools.setup(
     install_requires=[
         'numpy',
         'scipy',
-        'panda',
+        'pandas',
         'tqdm',
         'matplotlib',
         'statsmodels',
